@@ -1,0 +1,15 @@
+[package]
+name = "agent_test"
+version = "0.1.0"
+edition = "2024"
+
+# 刻意保持零外部依赖（仅用 std）。
+# 原因：本机的公司代理（proxyhk.huawei.com）正在 403 / SSL 拦截 crates.io，
+# 任何外部 crate（serde、clap、llama-cpp-rs …）都拉不下来，`cargo build` 会直接失败。
+# 零依赖意味着本骨架可以完全离线编译、随处可跑 —— 这对"端侧"恰好也是加分项
+# （无供应链、无网络、二进制小）。
+#
+# 要启用真正的本地推理后端（llama-cpp-rs），见：
+#   - templates/llama_backend.rs  （可直接接线的参考实现）
+#   - README.md 的「启用 llama 后端」一节
+[dependencies]

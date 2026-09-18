@@ -17,6 +17,7 @@ crate 都拉不下来。所以骨架刻意只用 std：既能立刻编译运行�
 ```powershell
 cargo build
 cargo run -- --ask "现在几点了?"     # 一次性：mock 会调用 get_time 工具
+cargo run -- --demo                  # 演示 harness / agent-core / llm 三层结构
 cargo run                            # 交互式 REPL
 ```
 示例输出（mock 后端真实走了一遍工具循环）：
@@ -37,6 +38,7 @@ hi repl
 | `--system <文本>` | 自定义系统提示词 | 内置协议提示词 |
 | `--max-iters <n>` | 每轮最多工具迭代次数 | `5` |
 | `--ask <问题>` | 一次性回答后退出（否则进 REPL） | — |
+| `--demo` | 演示 harness / agent-core / llm 三层结构 | — |
 | `-h, --help` | 帮助 | |
 
 ## agent 循环与工具协议
@@ -49,16 +51,32 @@ agent 循环（`Agent::run_turn`）：渲染完整 transcript → 问后端 → 
 若为 `ANSWER:`（或无前缀的整段输出）则返回。跨轮 `history` 累积以保留上下文。
 这种「文本协议 + 观察回填」的做法对本地小模型比严格 JSON 更稳。
 
+## 三层结构：harness / agent-core / llm
+
+```
+harness     组装与驱动（CLI/REPL、配置、I/O）              main.rs / config.rs
+   | 组装 + 驱动
+agent-core  推理循环（CALL/ANSWER 协议、工具分发、历史）     agent.rs / tools/
+   | 只依赖 LlmBackend 抽象
+llm         大脑（transcript 进 -> 下一步出，无状态、可插拔） backend/
+```
+
+依赖自上而下单向：harness 认识 agent-core；agent-core 只认 `LlmBackend`
+抽象，不关心背后是 mock 还是 llama；llm 层对上面两层一无所知。
+`cargo run -- --demo` 依次演示三层：直接调后端看「文本进 / 文本出」、
+裸跑 Agent 循环（tracer 展示每步迭代）、换一个后端跑同一问题做对比。
+
 ## 项目结构
 ```
 src/
-  main.rs            CLI 解析 + REPL
+  main.rs            CLI 解析 + REPL（harness 外壳）
+  demo.rs            --demo：harness / agent-core / llm 三层结构演示
   config.rs          AppConfig / BackendKind
   error.rs           AgentError + Result 别名
-  agent.rs           Agent 循环、transcript 渲染、CALL/ANSWER 解析
-  backend/mod.rs     LlmBackend trait + build_backend 工厂
+  agent.rs           Agent 循环、transcript 渲染、CALL/ANSWER 解析（agent-core）
+  backend/mod.rs     LlmBackend trait + build_backend 工厂（llm 层抽象）
   backend/mock.rs    确定性 mock 后端（演示 / 测试循环）
-  tools/mod.rs       Tool trait + ToolRegistry
+  tools/mod.rs       Tool trait + ToolRegistry（agent-core 的「手」）
   tools/builtin.rs   get_time / echo / read_file
 templates/
   llama_backend.rs   llama-cpp-rs 接线模板（默认不编译）

@@ -1,6 +1,7 @@
 mod agent;
 mod backend;
 mod config;
+mod demo;
 mod error;
 mod tools;
 
@@ -20,6 +21,12 @@ fn main() {
 
 fn run() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
+
+    // --demo：harness / agent-core / llm 三层结构演示（见 src/demo.rs）。
+    if args.iter().any(|a| a == "--demo") {
+        return demo::run();
+    }
+
     let cfg = parse_args(&args)?;
 
     let mut tools = ToolRegistry::new();
@@ -119,11 +126,13 @@ fn print_help() {
   --system <文本>          自定义系统提示词
   --max-iters <n>          每轮最多工具调用迭代次数（默认 5）
   --ask <问题>             一次性：回答后直接退出（否则进入 REPL）
+  --demo                   演示 harness / agent-core / llm 三层结构后退出
   -h, --help               显示本帮助
 
 示例:
   agent_test                                    # 用 mock 后端进入 REPL
   agent_test --ask \"现在几点了?\"              # 一次性（mock 会调用 get_time）
+  agent_test --demo                             # 三层结构演示
   agent_test --backend llama --model m.gguf    # 待 llama 后端启用后
 "
     );

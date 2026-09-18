@@ -5,7 +5,7 @@ use crate::error::{AgentError, Result};
 
 pub use mock::MockBackend;
 
-/// 语言模型后端。
+/// 语言模型后端（三层结构中的 llm 层：只做「transcript 进 -> 下一步文本出」的映射）。
 ///
 /// 实现必须是「会话无状态」的：每次调用都传入完整对话记录（transcript）。
 /// 这与本地 llama.cpp 推理的工作方式一致 —— 模型本身不保留上下文，
